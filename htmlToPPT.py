@@ -36,6 +36,13 @@ class ConversionError(Exception):
     """Custom exception for failures in the HTML to PPT conversion process."""
     pass
 
+# ---------- Cost Calculation Constants ----------
+# NOTE: Using pricing for Gemini 2.0 Pro as of late 2025. 
+# Update these values if the pricing for Gemini 2.5 Pro changes.
+# Pricing is based on characters, not tokens, for this model.
+COST_PER_1K_CHARS_INPUT = 0.00125
+COST_PER_1K_CHARS_OUTPUT = 0.010
+
 # ---------- 1) Capture HTML Screenshot ----------
 def capture_html_screenshot(html_path: str, output_path: str, width: int = 1920, height: int = 1080) -> str:
     """
@@ -120,15 +127,21 @@ def request_code_fix(original_code: str, error_message: str, model) -> str:
     logging.info("Sending faulty code and error message to Gemini for correction...")
     try:
         response = model.generate_content(fix_prompt)
+        
+        # --- Cost Calculation ---
+        input_char_count = len(fix_prompt)
+        output_char_count = len(response.text or "")
+        # --- End Cost Calculation ---
+
         fixed_code = extract_code_block(response.text or "")
         if not fixed_code:
             logging.warning("Gemini did not return a code block for the fix.")
             return original_code # Return original code if fix is empty
         logging.info("Received corrected code from Gemini.")
-        return fixed_code
+        return fixed_code, input_char_count, output_char_count
     except Exception as e:
         logging.error(f"An exception occurred while requesting a code fix: {e}")
-        return original_code # Return original on failure
+        return original_code, 0, 0 # Return original on failure, with zero cost
 
 # ---------- 2) Presign S3 upload ----------
 def presign_s3_pair(bucket: str, key_prefix: str = "pptx/", filename: str = None, expires=3600):
@@ -489,6 +502,12 @@ def convert_html_to_pptx(
 
     model = get_gemini_client()
     code = ""
+    
+    # --- Cost Tracking Initialization ---
+    total_input_chars = 0
+    total_output_chars = 0
+    total_api_calls = 0
+    # --- End Cost Tracking Initialization ---
 
     # 1) Capture screenshot and perform initial code generation
     with tempfile.TemporaryDirectory() as screenshot_dir:
@@ -509,6 +528,19 @@ def convert_html_to_pptx(
         
         logging.info("Requesting initial code generation from Gemini (with screenshot)...")
         resp = model.generate_content([screenshot_image, prompt])
+        total_api_calls += 1
+        
+        # --- Cost Calculation ---
+        # For multimodal input, character count is calculated on the text part.
+        # The cost of the image is separate and typically priced per-image, but we'll note it.
+        # For simplicity in this calculation, we focus on character count as per the model's pricing structure.
+        input_chars = len(prompt)
+        output_chars = len(resp.text or "")
+        total_input_chars += input_chars
+        total_output_chars += output_chars
+        logging.info(f"API Call {total_api_calls}: Input Chars = {input_chars}, Output Chars = {output_chars}")
+        # --- End Cost Calculation ---
+
         text = resp.text or ""
         logging.info(f"Received initial response from Gemini ({len(text)} characters)")
         code = extract_code_block(text)
@@ -554,6 +586,27 @@ def convert_html_to_pptx(
                 logging.info("="*30 + " Process Completed Successfully " + "="*30)
                 # Clean up the handler for this run to avoid duplicate logging
                 logging.getLogger().removeHandler(file_handler)
+                
+                # --- Final Cost Calculation on Success ---
+                input_cost = (total_input_chars / 1000) * COST_PER_1K_CHARS_INPUT
+                output_cost = (total_output_chars / 1000) * COST_PER_1K_CHARS_OUTPUT
+                total_cost = input_cost + output_cost
+                
+                cost_summary = (
+                    f"\n--- COST SUMMARY (SUCCESS) ---\n"
+                    f"Total API Calls: {total_api_calls}\n"
+                    f"Total Input Characters: {total_input_chars:,}\n"
+                    f"Total Output Characters: {total_output_chars:,}\n"
+                    f"Input Cost: ${input_cost:.6f}\n"
+                    f"Output Cost: ${output_cost:.6f}\n"
+                    f"Total Estimated Cost: ${total_cost:.6f}\n"
+                    f"Note: Image input cost is not included in this calculation.\n"
+                    f"-----------------------------"
+                )
+                print(cost_summary)
+                logging.info(cost_summary)
+                # --- End Final Cost Calculation ---
+                
                 return final_output_path
 
             # --- Handle Failure ---
@@ -562,12 +615,39 @@ def convert_html_to_pptx(
             logging.error(f"Execution failed with return code {proc.returncode}.\n{error_output}")
             
             if attempt < max_retries:
-                code = request_code_fix(code, error_output, model)
+                # Request a fix from Gemini and update costs
+                fixed_code, input_chars, output_chars = request_code_fix(code, error_output, model)
+                code = fixed_code
+                total_api_calls += 1
+                total_input_chars += input_chars
+                total_output_chars += output_chars
+                logging.info(f"API Call {total_api_calls}: Input Chars = {input_chars}, Output Chars = {output_chars} (for fix)")
             else:
                 logging.error(f"Maximum number of retries ({max_retries}) reached. Giving up.")
                 final_error_message = f"Failed to generate PPTX for {html_path} after {max_retries} attempts."
                 if builder_save_path:
                     final_error_message += f" Check the final faulty builder script at: {builder_save_path}"
+                
+                # --- Final Cost Calculation on Failure ---
+                input_cost = (total_input_chars / 1000) * COST_PER_1K_CHARS_INPUT
+                output_cost = (total_output_chars / 1000) * COST_PER_1K_CHARS_OUTPUT
+                total_cost = input_cost + output_cost
+                
+                cost_summary = (
+                    f"\n--- COST SUMMARY (FAILED) ---\n"
+                    f"Total API Calls: {total_api_calls}\n"
+                    f"Total Input Characters: {total_input_chars:,}\n"
+                    f"Total Output Characters: {total_output_chars:,}\n"
+                    f"Input Cost: ${input_cost:.6f}\n"
+                    f"Output Cost: ${output_cost:.6f}\n"
+                    f"Total Estimated Cost: ${total_cost:.6f}\n"
+                    f"Note: Image input cost is not included in this calculation.\n"
+                    f"-----------------------------"
+                )
+                print(cost_summary)
+                logging.info(cost_summary)
+                # --- End Final Cost Calculation ---
+                
                 # Clean up handler before raising
                 logging.getLogger().removeHandler(file_handler)
                 raise ConversionError(final_error_message)

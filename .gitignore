@@ -1,0 +1,19 @@
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# OS-specific files
+.DS_Store
+
+# Log files
+*.log
+conversion_log.txt
+
+# Generated output (optional, but good practice to ignore)
+sampleHTML/*.pptx
+sampleHTML/*_builder.py
+sampleHTML/*_builder_attempt_*.py
+sampleHTML/*_screenshot.png

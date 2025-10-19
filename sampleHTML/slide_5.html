@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Slide Generation</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --space-gap: 12px;
+            --space-padding: 16px;
+            --primary-color: #0078D4;
+            --text-color: #333333;
+            --text-color-light: #666666;
+            --border-color: #E0E0E0;
+            --background-color: #F4F4F4;
+            --card-background-color: #FFFFFF;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: "Segoe UI", "Roboto", "Arial", sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #slide-container {
+            width: 1920px;
+            height: 1080px;
+            background-color: var(--background-color);
+            padding: var(--space-gap);
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-gap);
+            overflow: hidden; /* Strict adherence to no-scroll */
+        }
+
+        .row-container {
+            flex: 1;
+            display: flex;
+            gap: var(--space-gap);
+        }
+
+        .card {
+            background-color: var(--card-background-color);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: var(--space-padding);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .card.flex-3 { flex: 3; }
+        .card.flex-2 { flex: 2; }
+        
+        h3 {
+            font-size: 28px;
+            color: var(--primary-color);
+            padding-bottom: 10px;
+            margin-bottom: var(--space-padding);
+            border-bottom: 2px solid var(--border-color);
+            font-weight: 600;
+        }
+
+        h4 {
+            font-size: 20px;
+            color: var(--primary-color);
+            margin-top: 12px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        h5 {
+            font-size: 16px;
+            color: var(--text-color);
+            margin-top: 10px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+
+        p, span {
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--text-color-light);
+        }
+        
+        ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        li {
+            font-size: 15px;
+            color: var(--text-color-light);
+            line-height: 1.6;
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        li::before {
+            content: '•';
+            color: var(--primary-color);
+            font-weight: bold;
+            display: inline-block;
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+        
+        sup {
+            font-size: 0.7em;
+            color: var(--text-color-light);
+            font-weight: bold;
+        }
+        
+        /* Financial Performance Component Styles */
+        #kpi-container {
+            display: flex;
+            justify-content: space-around;
+            gap: var(--space-gap);
+            margin-bottom: var(--space-padding);
+        }
+
+        .kpi-box {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .kpi-box .kpi-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-bottom: 6px;
+        }
+        
+        .kpi-box .kpi-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        
+        .kpi-box .kpi-subvalue {
+            font-size: 12px;
+            color: var(--text-color-light);
+        }
+
+        #chart-container {
+            flex-grow: 1;
+            position: relative;
+            min-height: 200px; /* Ensure chart has a minimum height */
+        }
+        
+        /* Supply Chain Component Styles */
+        .supply-chain-section {
+            margin-bottom: 12px;
+        }
+
+        .supply-chain-section p, .supply-chain-section li {
+            font-size: 14px;
+        }
+
+        .raw-materials-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px 12px;
+            padding-left: 10px;
+            margin-top: 5px;
+        }
+
+        .raw-materials-list li {
+            padding-left: 15px;
+            margin-bottom: 2px;
+        }
+
+    </style>
+</head>
+<body>
+    <div id="slide-container">
+        <div class="row-container">
+            <div id="financialPerformanceSnapshot" class="card flex-3"></div>
+            <div id="strategicCompetitiveAdvantages" class="card flex-2"></div>
+        </div>
+        <div class="row-container">
+            <div id="supplyChainAndLogistics" class="card flex-3"></div>
+            <div id="marketOpportunityAndGrowthOutlook" class="card flex-2"></div>
+        </div>
+    </div>
+
+    <script>
+        const INPUT_JSON = {
+          "components": [
+            {
+              "componentType": "financialPerformanceSnapshot",
+              "answer": {
+                "componentType": "financialPerformanceSnapshot",
+                "revenueMetrics": {
+                  "fyRevenueCurrent": "995.27 Million INR (2024)",
+                  "revenueCagr": "26.1%"
+                },
+                "profitabilityMetrics": {
+                  "ebitdaCurrent": "204.83 Million INR (2024)",
+                  "ebitdaMarginCurrent": "20.6%"
+                },
+                "capitalEfficiencyMetrics": {
+                  "returnOnCapitalEmployed": "26.06%"
+                },
+                "historical_performance": {
+                  "years": [ "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024" ],
+                  "revenue": [ 165.65, 176.72, 247.28, 308.19, 416.84, 418.04, 496.59, 857.88, 751.58, 995.27 ],
+                  "ebitda": [ 13.72, 18.03, 38.26, 53.64, 83.86, 78.37, 124.52, 245.36, 101.17, 204.83 ]
+                }
+              }
+            },
+            {
+              "componentType": "strategicCompetitiveAdvantages",
+              "answer": {
+                "componentType": "strategicCompetitiveAdvantages",
+                "differentiationFactors": [
+                  "High-quality tin cans & components manufacturer/exporter [1]",
+                  "Diverse product portfolio: monotop, cone top, pour top, Fstyle, paint cans [1]",
+                  "Commitment to quality & innovation [1]",
+                  "Annual production capacity: 60M cans (single shift) [1]",
+                  "Manufacturing infrastructure: 30k+ sq. mts in a major Indian city [1]",
+                  "Decade-long revenue CAGR: ~27% [1]",
+                  "Global export presence: India, Bangladesh, Canada, China, Egypt, Guatemala, Jordan, Saudi Arabia, Turkey, United States, UAE, West Indies [1, 3]",
+                  "Established in 1981, extensive experience in manufacturing & export [2]"
+                ],
+                "marketPositioning": [
+                  "Leading B2B manufacturer & exporter in industrial packaging [1]",
+                  "Specializes in metal containers for plumbing, automotive, industrial products, paint, chemicals, construction, adhesives, solvent cement industries [1]",
+                  "Strategic focus on global tin market growth (projected USD 6,863.1M in 2023 to USD 9,291.5M by 2030, CAGR 3.91%) [3]",
+                  "Expanding product offerings in beverage can sector (aluminum & steel cans) [3]",
+                  "Enhancing presence in emerging markets (Asia Pacific, Latin America) [3]",
+                  "Exploring M&A for market position & portfolio expansion [3]"
+                ]
+              }
+            },
+            {
+              "componentType": "marketOpportunityAndGrowthOutlook",
+              "answer": {
+                "componentType": "marketOpportunityAndGrowthOutlook",
+                "totalAddressableMarket": "Global Tin Market: $6,863.1M (2023) to $9,291.5M (2030), 3.91% CAGR [3]",
+                "nicheMarketPotential": "Specialty Tin Cans: $1,013.5M by 2035, 4.8% CAGR [3]. Expansion into Beverage Can Sector (aluminum & steel cans) [3].",
+                "growthStrategySummary": "Leverage global tin market growth (3.91% CAGR) [3]. Expand into beverage can sector [3]. Geographic expansion in Asia Pacific & Latin America [3]. Explore M&A for market position & product portfolio expansion [3]."
+              }
+            },
+            {
+              "componentType": "supplyChainAndLogistics",
+              "answer": {
+                "componentType": "supplyChainAndLogistics",
+                "rawMaterialSourcing": {
+                  "keyRawMaterials": [ "Tinplate (iron, tin, steel)", "PVC, CPVC, uPVC, ABS cements", "Rubber cement, primers, cleaners, thread sealants", "Brake oil, brake fluid, automobile additives, motor oil", "Thinner, chemicals, car wax, lubricants, solvents", "Paints, coatings, adhesives" ],
+                  "strategy": "Mix of global and local sourcing; diverse supplier base for risk mitigation; focus on cost efficiency and supply chain resilience.",
+                  "supplierRelationships": "NA",
+                  "riskMitigation": "Diversification of suppliers to avoid sole reliance and ensure continuous supply."
+                },
+                "inventoryManagement": {
+                  "approach": "Likely employs best practices including regular audits, demand forecasting, optimized storage, and integration with production planning. Potential use of Just-In-Time (JIT) principles to optimize costs and ensure supply.",
+                  "rawMaterials": "Managed to ensure continuous production flow.",
+                  "wip": "Managed to optimize production efficiency.",
+                  "finishedGoods": "Managed to meet global and domestic client demand, potentially utilizing customized release programs and warehousing."
+                },
+                "finishedGoodsDistribution": {
+                  "channels": "Direct sales to B2B clients in India and globally, serving diverse industries (e.g., plumbing, automotive, paints, chemicals).",
+                  "logistics": "Global distribution network, including international exports to countries across Asia, North America, Europe, and the Middle East. Utilizes ocean and air freight for international shipments. Focus on efficient, timely, and secure delivery. [1, 2, 1, 5]",
+                  "exportLogistics": "Extensive international reach, exporting to numerous countries worldwide. [1]"
+                }
+              }
+            }
+          ]
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSlide(INPUT_JSON);
+        });
+        
+        const renderSlide = (data) => {
+            data.components.forEach(component => {
+                const container = document.getElementById(component.componentType);
+                if (container) {
+                    renderComponent(container, component.answer);
+                }
+            });
+        };
+
+        const formatKey = (key) => {
+            const result = key.replace(/([A-Z])/g, ' $1');
+            return result.charAt(0).toUpperCase() + result.slice(1);
+        };
+        
+        const formatCitations = (text) => {
+             return text.replace(/\[([0-9, ]+)\]/g, '<sup>[$1]</sup>');
+        };
+
+        const renderComponent = (container, data) => {
+            container.innerHTML = ''; // Clear previous content
+            
+            // Create a general helper for adding sections with a title and content
+            const addSection = (parent, title, content) => {
+                const titleEl = document.createElement(content ? 'h4' : 'h3');
+                titleEl.innerHTML = formatCitations(title);
+                parent.appendChild(titleEl);
+                if(content) {
+                    const contentEl = document.createElement('p');
+                    contentEl.innerHTML = formatCitations(content);
+                    parent.appendChild(contentEl);
+                }
+            };
+            
+            const addList = (parent, title, items) => {
+                const titleEl = document.createElement('h4');
+                titleEl.textContent = title;
+                parent.appendChild(titleEl);
+                const ul = document.createElement('ul');
+                items.forEach(item => {
+                    const li = document.createElement('li');
+                    li.innerHTML = formatCitations(item);
+                    ul.appendChild(li);
+                });
+                parent.appendChild(ul);
+            };
+
+            switch (data.componentType) {
+                case 'financialPerformanceSnapshot':
+                    addSection(container, 'Financial Performance Snapshot');
+                    
+                    const kpiContainer = document.createElement('div');
+                    kpiContainer.id = 'kpi-container';
+                    
+                    const createKpiBox = (title, value, subvalue) => {
+                        const box = document.createElement('div');
+                        box.className = 'kpi-box';
+                        box.innerHTML = `<div class="kpi-title">${title}</div><div class="kpi-value">${value}</div><div class="kpi-subvalue">${subvalue}</div>`;
+                        return box;
+                    };
+                    
+                    kpiContainer.appendChild(createKpiBox('FY Revenue', data.revenueMetrics.fyRevenueCurrent, `${data.revenueMetrics.revenueCagr} CAGR`));
+                    kpiContainer.appendChild(createKpiBox('EBITDA', data.profitabilityMetrics.ebitdaCurrent, `${data.profitabilityMetrics.ebitdaMarginCurrent} Margin`));
+                    kpiContainer.appendChild(createKpiBox('Return On Capital Employed', data.capitalEfficiencyMetrics.returnOnCapitalEmployed, ''));
+
+                    container.appendChild(kpiContainer);
+
+                    const chartContainer = document.createElement('div');
+                    chartContainer.id = 'chart-container';
+                    const canvas = document.createElement('canvas');
+                    chartContainer.appendChild(canvas);
+                    container.appendChild(chartContainer);
+
+                    renderFinancialChart(canvas, data.historical_performance);
+                    break;
+
+                case 'strategicCompetitiveAdvantages':
+                    addSection(container, 'Strategic Competitive Advantages');
+                    addList(container, 'Differentiation Factors', data.differentiationFactors);
+                    addList(container, 'Market Positioning', data.marketPositioning);
+                    break;
+                    
+                case 'marketOpportunityAndGrowthOutlook':
+                    addSection(container, 'Market Opportunity & Growth Outlook');
+                    addSection(container, 'Total Addressable Market', data.totalAddressableMarket);
+                    addSection(container, 'Niche Market Potential', data.nicheMarketPotential);
+                    addSection(container, 'Growth Strategy Summary', data.growthStrategySummary);
+                    break;
+
+                case 'supplyChainAndLogistics':
+                     addSection(container, 'Supply Chain & Logistics');
+                     const createSubSection = (parent, dataObject, title) => {
+                        const section = document.createElement('div');
+                        section.className = 'supply-chain-section';
+                        const titleEl = document.createElement('h4');
+                        titleEl.textContent = title;
+                        section.appendChild(titleEl);
+                        
+                        Object.entries(dataObject).forEach(([key, value]) => {
+                           const subTitleEl = document.createElement('h5');
+                           subTitleEl.textContent = formatKey(key);
+                           section.appendChild(subTitleEl);
+                           
+                           if (Array.isArray(value)) {
+                               const ul = document.createElement('ul');
+                               ul.className = 'raw-materials-list';
+                               value.forEach(item => {
+                                   const li = document.createElement('li');
+                                   li.innerHTML = formatCitations(item);
+                                   ul.appendChild(li);
+                               });
+                               section.appendChild(ul);
+                           } else {
+                               const p = document.createElement('p');
+                               p.innerHTML = formatCitations(value);
+                               section.appendChild(p);
+                           }
+                        });
+                        parent.appendChild(section);
+                     };
+
+                     createSubSection(container, data.rawMaterialSourcing, 'Raw Material Sourcing');
+                     createSubSection(container, data.inventoryManagement, 'Inventory Management');
+                     createSubSection(container, data.finishedGoodsDistribution, 'Finished Goods Distribution');
+                    break;
+            }
+        };
+
+        const renderFinancialChart = (canvas, chartData) => {
+            const ctx = canvas.getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: chartData.years,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Revenue (Million INR)',
+                            data: chartData.revenue,
+                            backgroundColor: 'rgba(0, 120, 212, 0.6)',
+                            borderColor: 'rgba(0, 120, 212, 1)',
+                            borderWidth: 1,
+                            yAxisID: 'y',
+                        },
+                        {
+                            type: 'line',
+                            label: 'EBITDA (Million INR)',
+                            data: chartData.ebitda,
+                            borderColor: '#FFA500',
+                            backgroundColor: '#FFA500',
+                            tension: 0.1,
+                            yAxisID: 'y1',
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                font: { size: 14 }
+                            }
+                        },
+                        tooltip: {
+                           bodyFont: { size: 14 },
+                           titleFont: { size: 16 }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { font: { size: 12 } },
+                            grid: { display: false }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: 'Revenue (INR Mn)', font: { size: 14 } },
+                            ticks: { font: { size: 12 } }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: 'EBITDA (INR Mn)', font: { size: 14 } },
+                            grid: { drawOnChartArea: false },
+                            ticks: { font: { size: 12 } }
+                        }
+                    }
+                }
+            });
+        };
+    </script>
+</body>
+</html>

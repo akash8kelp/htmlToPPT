@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>Financial & Operational Overview</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.1.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    <style>
+        :root {
+            --space-gap: 12px;
+            --space-padding: 16px;
+            --primary-color: #0078D4;
+            --text-color: #333333;
+            --border-color: #E0E0E0;
+            --h3-font-size: 28px;
+            --h4-font-size: 24px;
+            --body-font-size: 16px;
+            --small-font-size: 12px;
+        }
+
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            width: 1920px;
+            height: 1080px;
+            font-family: "Segoe UI", "Roboto", "Arial", sans-serif;
+            background-color: #FFFFFF;
+            color: var(--text-color);
+            overflow: hidden; /* Strict adherence to no-scroll */
+        }
+
+        /* Slide Container */
+        .slide-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background-color: #FDFDFD;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex-grow: 1;
+            display: flex;
+            gap: var(--space-gap);
+            padding: var(--space-padding);
+            overflow: hidden;
+        }
+
+        .left-column {
+            flex: 2;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .right-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-gap);
+        }
+
+        /* Card Component Styling */
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: var(--space-padding);
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+        }
+
+        .card h3 {
+            font-size: var(--h4-font-size);
+            color: var(--primary-color);
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .card h4 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-color);
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+
+        .card p, .card li {
+            font-size: var(--body-font-size);
+            line-height: 1.6;
+            margin-bottom: 8px;
+        }
+        
+        .card ul {
+            list-style-position: inside;
+            padding-left: 8px;
+        }
+        
+        .card li::marker {
+           color: var(--primary-color);
+           font-size: 1.2em;
+        }
+
+        /* Specific Component Styles */
+        
+        /* Financial Snapshot Card */
+        #financial-snapshot-card {
+            flex-grow: 1;
+        }
+        
+        .financial-top-section {
+            display: flex;
+            gap: var(--space-gap);
+            margin-bottom: var(--space-padding);
+        }
+
+        .financial-table-container {
+            flex: 3;
+        }
+
+        .key-ratios-container {
+            flex: 2;
+        }
+        
+        .key-ratios-container ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .key-ratios-container li {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 15px;
+        }
+        .key-ratios-container li span:first-child {
+            color: #555;
+        }
+        .key-ratios-container li span:last-child {
+            font-weight: bold;
+        }
+
+        .financial-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 15px;
+        }
+
+        .financial-table th, .financial-table td {
+            padding: 8px 10px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .financial-table th {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+
+        .financial-table td:not(:first-child), .financial-table th:not(:first-child) {
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .historical-chart-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0; /* Important for flexbox child height calculation */
+        }
+        
+        .chart-wrapper {
+            position: relative;
+            flex-grow: 1;
+        }
+
+        .plotting-data-container {
+           margin-top: var(--space-padding);
+        }
+
+        .plotting-data-container h4 {
+           margin-bottom: 6px;
+           font-size: 14px;
+           color: #555;
+        }
+
+        .plotting-data {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 16px;
+            font-size: var(--small-font-size);
+            line-height: 1.5;
+            font-family: "Consolas", "Menlo", monospace;
+            color: #444;
+        }
+
+        /* Footer */
+        .footer {
+            width: 100%;
+            height: 90px;
+            padding: 0 24px;
+            box-sizing: border-box;
+            border-top: 1px solid #DDDDDD;
+            position: relative;
+            background-color: #FFFFFF;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 65px;
+            margin-top: 5px;
+        }
+        
+        .footer-disclaimer {
+            font-size: 12px;
+            color: #666666;
+            white-space: nowrap;
+        }
+        
+        .footer-classification {
+            position: absolute;
+            left: 50%;
+            bottom: 8px;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: bold;
+            color: #000000;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="slide-container">
+        <main class="main-content">
+            <div class="left-column" id="left-column"></div>
+            <div class="right-column" id="right-column"></div>
+        </main>
+        
+        <footer class="footer">
+            <div class="footer-content">
+                <img src="https://nextgeneration.vc/wp-content/uploads/2018/07/kpmg-logo.png" alt="KPMG Logo" height="65">
+                <p class="footer-disclaimer">© 2024 KPMG India Services LLP, an Indian limited liability company and a member firm of the KPMG network of independent member firms affiliated with KPMG International Cooperative (“KPMG International”), a Swiss entity. All rights reserved.</p>
+            </div>
+            <p class="footer-classification">Document Classification: KPMG Confidential</p>
+        </footer>
+
+    </div>
+
+    <script>
+        const INPUT_JSON = {
+            "components": [{
+                "componentType": "financialSnapshot",
+                "answer": {
+                    "componentType": "financialSnapshot",
+                    "title": "Key Financial Performance & Ratios",
+                    "financialTableData": {
+                        "columns": ["Metric", "FY2023", "FY2024", "H1FY2025"],
+                        "rows": [{
+                            "metricName": "Revenue (₹ Crore)",
+                            "values": [337.28, 405.49, 191.02]
+                        }, {
+                            "metricName": "EBITDA (₹ Crore)",
+                            "values": [27.88, 41.19, 16.53]
+                        }, {
+                            "metricName": "PAT (₹ Crore)",
+                            "values": [0.71, 9.84, 2.98]
+                        }],
+                        "keyRatios": [{
+                            "ratioName": "EBITDA Margin",
+                            "value": "10.16%"
+                        }, {
+                            "ratioName": "PAT Margin",
+                            "value": "2.43%"
+                        }, {
+                            "ratioName": "ROCE",
+                            "value": "3.82%"
+                        }, {
+                            "ratioName": "RoE",
+                            "value": "10.58%"
+                        }, {
+                            "ratioName": "Overall Gearing",
+                            "value": "1.76x"
+                        }, {
+                            "ratioName": "Interest Coverage",
+                            "value": "4.86x"
+                        }]
+                    },
+                    "historical_performance": {
+                        "unit": "INR Million",
+                        "years": [2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024],
+                        "revenue": [91.6, 153.9, 316.2, 458.5, 675.0, 862.1, 909.47, 1302.35, 1739.64, 2222.61, 2525.66, 2867.42, 2909.79, 3736.01, 3372.77, 4054.87],
+                        "ebitda": [20.2, 16.7, 46.9, 55.7, 78.4, 103.0, 126.81, 175.07, 237.92, 291.35, 306.93, 348.78, 367.14, 353.39, 278.79, 411.89]
+                    }
+                },
+                "citations": [],
+                "slide": 2
+            }, {
+                "componentType": "operationalCapabilities",
+                "answer": {
+                    "componentType": "operationalCapabilities",
+                    "title": "Advanced Packaging Manufacturing Capabilities",
+                    "totalManufacturingCapacity": "42,000 MTPA (corrugated boxes), 112.8 lakh sq meters (self-adhesive labels & mono cartons), 480 lakh sq meters (coated products) as of March 31, 2024. [1, 2, 3]",
+                    "productionCapacityBreakdown": [{
+                        "productType": "Cartons, Boxes, Cases of Corrugated Boxes",
+                        "capacity": "42,000 MTPA [1, 2, 3]"
+                    }, {
+                        "productType": "Self-Adhesive Labels & Mono Cartons",
+                        "capacity": "112.8 lakh sq meters [1, 2, 3]"
+                    }, {
+                        "productType": "Coated Products",
+                        "capacity": "480 lakh sq meters [1, 2, 3]"
+                    }],
+                    "keyTechnologyOverview": "Advanced printing technology, Digital Printing, Flexographic Printing, Lamination, state-of-the-art Labeling and Folding Carton unit. Recent machinery upgrades include Rhyguan machine, ABG Digicon Series 3, Durst digital press, 6-color Bobst FFG 1228, and HP Indigo WS6600. [1]",
+                    "certificationsAndQualityStandards": "NA"
+                },
+                "citations": [],
+                "slide": 2
+            }, {
+                "componentType": "customerArchetypes",
+                "answer": {
+                    "componentType": "customerArchetypes",
+                    "title": "Diversified B2B Clientele & Strong Relationships",
+                    "customerSegmentation": ["Large FMCG & Household Appliance Manufacturers", "Pharmaceutical & Cosmetics Companies", "Agriculture & Agrochemical Distributors", "Automotive & Oil & Lubricant Industries", "Dye & Intermediate Producers", "Sanitary Fittings Manufacturers", "Fruit & Vegetable Exporters (Middle East, Europe)", "Beauty & Petroleum Product Manufacturers (UAE)"],
+                    "clientRelationshipOverview": "Long-term contracts with reputed clientele, preferred supplier status, track record of customer retention.",
+                    "customerConcentrationDescription": "Top 5 customers account for 25% of Total Operating Income. Largest single client contributes 12% of consolidated sales (FY24)."
+                },
+                "citations": [],
+                "slide": 2
+            }, {
+                "componentType": "distributionChannels",
+                "answer": {
+                    "componentType": "distributionChannels",
+                    "title": "Global Distribution & Supply Chain",
+                    "primaryChannels": ["Direct B2B Sales: Diverse industries (FMCG, Pharma, Agriculture). [3]", "Distribution Network: Packaging products. [3]", "International Exports: Middle East, Europe, Brazil, Thailand; via traders & international subsidiary. [1, 2, 3]"],
+                    "logisticsAndSupplyChainEfficiency": ["Cost Pass-Through: Raw material price increases passed to customers. [2, 3]", "Forex Risk Mitigation: Exports (2-3% sales) provide natural hedge for imported raw materials (40-50%). [2, 3]", "Customer Retention: Proven track record. [3]"]
+                },
+                "citations": [],
+                "slide": 2
+            }]
+        };
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            Chart.register(ChartDataLabels);
+            renderSlide(INPUT_JSON);
+        });
+        
+        function renderSlide(data) {
+            const leftColumn = document.getElementById('left-column');
+            const rightColumn = document.getElementById('right-column');
+            
+            data.components.forEach(component => {
+                let element = null;
+                switch(component.componentType) {
+                    case 'financialSnapshot':
+                        element = renderFinancialSnapshot(component.answer);
+                        if (element) leftColumn.appendChild(element);
+                        break;
+                    case 'operationalCapabilities':
+                        element = renderOperationalCapabilities(component.answer);
+                        if (element) rightColumn.appendChild(element);
+                        break;
+                    case 'customerArchetypes':
+                        element = renderCustomerArchetypes(component.answer);
+                        if (element) rightColumn.appendChild(element);
+                        break;
+                    case 'distributionChannels':
+                        element = renderDistributionChannels(component.answer);
+                        if (element) rightColumn.appendChild(element);
+                        break;
+                }
+            });
+        }
+        
+        function renderFinancialSnapshot(data) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.id = 'financial-snapshot-card';
+
+            card.innerHTML = `
+                <h3>${data.title}</h3>
+                <div class="financial-top-section">
+                    <div class="financial-table-container">
+                        ${generateFinancialTable(data.financialTableData)}
+                    </div>
+                    <div class="key-ratios-container">
+                        <h4>Key Ratios</h4>
+                        ${generateKeyRatiosList(data.financialTableData.keyRatios)}
+                    </div>
+                </div>
+                <div class="historical-chart-container">
+                    <h4>Historical Performance Trend (${data.historical_performance.unit})</h4>
+                    <div class="chart-wrapper">
+                        <canvas id="historicalPerformanceChart"></canvas>
+                    </div>
+                    <div class="plotting-data-container">
+                        ${generatePlottingData(data.historical_performance)}
+                    </div>
+                </div>
+            `;
+            
+            setTimeout(() => {
+                const ctx = document.getElementById('historicalPerformanceChart').getContext('2d');
+                createHistoricalChart(ctx, data.historical_performance);
+            }, 0);
+
+            return card;
+        }
+        
+        function generateFinancialTable(data) {
+            const headers = data.columns.map(col => `<th>${col}</th>`).join('');
+            const rows = data.rows.map(row => `
+                <tr>
+                    <td>${row.metricName}</td>
+                    ${row.values.map(val => `<td>${val.toLocaleString('en-IN')}</td>`).join('')}
+                </tr>
+            `).join('');
+            
+            return `
+                <table class="financial-table">
+                    <thead><tr>${headers}</tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+
+        function generateKeyRatiosList(ratios) {
+            const items = ratios.map(ratio => `
+                <li>
+                    <span>${ratio.ratioName}</span>
+                    <span>${ratio.value}</span>
+                </li>
+            `).join('');
+            return `<ul>${items}</ul>`;
+        }
+        
+        function generatePlottingData(data) {
+            const revenuePoints = data.years.map((year, i) => `<span>${year}: ${data.revenue[i].toFixed(2)}</span>`).join('');
+            const ebitdaPoints = data.years.map((year, i) => `<span>${year}: ${data.ebitda[i].toFixed(2)}</span>`).join('');
+            
+            return `
+                <h4>Revenue Plotting</h4>
+                <div class="plotting-data">${revenuePoints}</div>
+                <h4>EBITDA Plotting</h4>
+                <div class="plotting-data">${ebitdaPoints}</div>
+            `;
+        }
+
+        function createHistoricalChart(ctx, data) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: data.years,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: data.revenue,
+                            borderColor: '#0078D4',
+                            backgroundColor: 'rgba(0, 120, 212, 0.1)',
+                            yAxisID: 'y_revenue',
+                            tension: 0.2,
+                            pointRadius: 3,
+                            fill: true,
+                        },
+                        {
+                            label: 'EBITDA',
+                            data: data.ebitda,
+                            borderColor: '#4A4A4A',
+                            backgroundColor: 'rgba(74, 74, 74, 0.1)',
+                            yAxisID: 'y_ebitda',
+                            tension: 0.2,
+                            pointRadius: 3,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            align: 'end',
+                        },
+                        datalabels: {
+                            display: (context) => context.dataIndex % 2 === 0,
+                            align: 'top',
+                            offset: 5,
+                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                            borderColor: context => context.dataset.borderColor,
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            color: context => context.dataset.borderColor,
+                            font: { size: 11, weight: '600' },
+                            formatter: (value) => Math.round(value),
+                            padding: 3,
+                        },
+                        tooltip: { enabled: true }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y_revenue: {
+                            type: 'linear',
+                            position: 'left',
+                            title: { display: true, text: `Revenue (${data.unit})` },
+                            grid: { color: '#EAEAEA' }
+                        },
+                        y_ebitda: {
+                            type: 'linear',
+                            position: 'right',
+                            title: { display: true, text: `EBITDA (${data.unit})` },
+                            grid: { drawOnChartArea: false },
+                        }
+                    }
+                }
+            });
+        }
+        
+        function renderOperationalCapabilities(data) {
+             const card = document.createElement('div');
+             card.className = 'card';
+             card.innerHTML = `
+                <h3>${data.title}</h3>
+                <h4>Total Manufacturing Capacity</h4>
+                <p>${data.totalManufacturingCapacity}</p>
+                <h4>Production Capacity Breakdown</h4>
+                <ul>${data.productionCapacityBreakdown.map(item => `<li><strong>${item.productType}:</strong> ${item.capacity}</li>`).join('')}</ul>
+                <h4>Key Technology Overview</h4>
+                <p>${data.keyTechnologyOverview}</p>
+                ${data.certificationsAndQualityStandards && data.certificationsAndQualityStandards !== 'NA' ? `
+                    <h4>Certifications & Quality Standards</h4>
+                    <p>${data.certificationsAndQualityStandards}</p>
+                ` : ''}
+             `;
+             return card;
+        }
+
+        function renderCustomerArchetypes(data) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <h3>${data.title}</h3>
+                <h4>Customer Segmentation</h4>
+                <ul>${data.customerSegmentation.map(item => `<li>${item}</li>`).join('')}</ul>
+                <h4>Client Relationship Overview</h4>
+                <p>${data.clientRelationshipOverview}</p>
+                <h4>Customer Concentration</h4>
+                <p>${data.customerConcentrationDescription}</p>
+            `;
+            return card;
+        }
+        
+        function renderDistributionChannels(data) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.innerHTML = `
+                <h3>${data.title}</h3>
+                <h4>Primary Channels</h4>
+                <ul>${data.primaryChannels.map(item => `<li>${item}</li>`).join('')}</ul>
+                <h4>Logistics & Supply Chain Efficiency</h4>
+                <ul>${data.logisticsAndSupplyChainEfficiency.map(item => `<li>${item}</li>`).join('')}</ul>
+            `;
+            return card;
+        }
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Company Profile Slide</title>
+    <style>
+        /* ------------------- */
+        /* --- CORE STYLES --- */
+        /* ------------------- */
+        :root {
+            --space-gap: 12px;
+            --space-padding: 12px; /* Corrected: Reduced from 16px */
+            --primary-color: #0078D4;
+            --text-color: #333333;
+            --subtle-text-color: #666666;
+            --border-color: #e0e0e0;
+            --font-stack: "Segoe UI", "Roboto", "Arial", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-family: var(--font-stack);
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        body {
+            width: 1920px;
+            height: 1080px;
+            background-color: #f7f9fc; /* A subtle off-white background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden; /* Ensure no scrolling */
+            color: var(--text-color);
+        }
+
+        /* ----------------- */
+        /* --- LAYOUT ---- */
+        /* ----------------- */
+        #slide-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            gap: var(--space-gap);
+            padding: var(--space-gap);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: var(--space-gap);
+            flex: 1 1 0;
+        }
+
+        .component-card {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: var(--space-padding);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .card-content {
+            flex-grow: 1;
+        }
+        
+        /* -------------------- */
+        /* --- TYPOGRAPHY --- */
+        /* -------------------- */
+
+        h3 {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--primary-color);
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        h4 {
+            font-size: 24px; /* Corrected: Changed from 20px */
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-top: 12px; /* Corrected: Reduced from 16px */
+            margin-bottom: 6px; /* Corrected: Reduced from 8px */
+        }
+
+        p, li {
+            font-size: 16px;
+            margin-bottom: 6px; /* Corrected: Reduced from 8px */
+        }
+        
+        strong {
+            font-weight: 600;
+        }
+
+        /* ------------------------- */
+        /* --- COMPONENT STYLES --- */
+        /* ------------------------- */
+        
+        /* Company Overview: Key Milestones */
+        .milestones-list {
+            list-style: none;
+            padding: 0;
+            margin-top: 8px;
+        }
+
+        .milestones-list li {
+            display: flex;
+            gap: 16px;
+            align-items: baseline;
+        }
+        
+        .milestones-list .year {
+            font-weight: 700;
+            flex-shrink: 0;
+            width: 100px; /* Aligns descriptions */
+            color: var(--text-color);
+        }
+        
+        /* Manufacturing Capabilities */
+        .capability-item {
+            margin-bottom: 12px;
+        }
+        
+        .capability-item strong {
+            display: block;
+            color: var(--text-color);
+            font-size: 17px;
+        }
+
+        /* Product Portfolio */
+        .product-categories-container {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        
+        .product-category strong {
+            display: block;
+            font-size: 17px;
+            color: var(--text-color);
+            margin-bottom: 8px;
+        }
+        
+        .product-category .spec-key {
+            font-weight: 600;
+            color: var(--subtle-text-color);
+        }
+        
+        /* Generic Bullet List & Multi-column list styles */
+        .bullet-list {
+            list-style: none;
+            padding: 0 0 0 1.2em;
+            margin: 0;
+        }
+        
+        .bullet-list li {
+             padding-left: 0.2em;
+             margin-bottom: 2px;
+        }
+
+        .bullet-list li::before {
+            content: "•";
+            color: var(--primary-color);
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1.2em;
+        }
+        
+        .multi-column-list {
+            column-count: 4;
+            column-gap: var(--space-gap);
+        }
+
+        .multi-column-list li {
+            break-inside: avoid-column;
+            page-break-inside: avoid;
+        }
+
+    </style>
+</head>
+<body>
+
+    <main id="slide-container"></main>
+
+    <script>
+        const INPUT_JSON = {
+          "components": [
+            {
+              "componentType": "companyOverview",
+              "answer": {
+                "componentType": "companyOverview",
+                "companyDescription": "A leading manufacturer and exporter of high-quality tin cans and components for industrial packaging, established in 1981. Specializes in various tin can types for plumbing, automotive, and paints industries. Achieved 60 million cans annual production capacity and ~27% CAGR over the last decade, exporting globally. [1]",
+                "missionVisionValues": "NA",
+                "keyMilestones": [
+                  {
+                    "year": "1981",
+                    "description": "Established as a manufacturer and exporter of industrial packaging solutions. [1]"
+                  },
+                  {
+                    "year": "Nov 2010",
+                    "description": "Incorporated as a private limited entity. [1]"
+                  },
+                  {
+                    "year": "Mar 2023",
+                    "description": "Generated revenue of \u20b9751.58 Million. [1]"
+                  },
+                  {
+                    "year": "Ongoing",
+                    "description": "Achieved 60 million cans annual production capacity. [1]"
+                  },
+                  {
+                    "year": "Last Decade",
+                    "description": "Experienced ~27% CAGR. [1]"
+                  }
+                ]
+              }
+            },
+            {
+              "componentType": "manufacturingCapabilities",
+              "answer": {
+                "componentType": "manufacturingCapabilities",
+                "installedCapacityOverview": "60 million units per annum (single shift), specializing in diverse tin can types (monotop, cone top, pour top, F-style, paint cans). [2]",
+                "manufacturingInfrastructure": "30,000+ sq. meters in a major Indian metropolitan area, strategically located for industrial operations. [2]",
+                "productionProcessHighlight": "Quality-conscious manufacturing processes with a focus on innovation and precision in tin can production. [1, 2]",
+                "certificationsAndQuality": "Authorized Economic Operator (AEO) certified, recognized as a Star Export House. Adherence to quality standards as a 'quality conscious manufacturer'. [1]"
+              }
+            },
+            {
+              "componentType": "productPortfolio",
+              "answer": {
+                "componentType": "productPortfolio",
+                "portfolioOverviewStatement": "Leading manufacturer and exporter of high-quality tin cans and components for diverse industrial packaging, with an annual production capacity of 60 million cans. [1]",
+                "majorProductCategories": [
+                  {
+                    "category": "Monotop Cans and Daubers / Brush in Cans",
+                    "function": "Industrial packaging for various cements (PVC, CPVC, uPVC, ABS, rubber), primers, cleaners, and thread sealants.",
+                    "applications": "Plumbing, Construction Chemicals, Adhesives, Solvent Cement.",
+                    "specifications": "Tin cans with monotop design, includes daubers/brushes. [1]"
+                  },
+                  {
+                    "category": "Cone Top, Pour Top and Oil Cans",
+                    "function": "Packaging for automotive fluids and additives.",
+                    "applications": "Automotive, Industrial Products.",
+                    "specifications": "Tin cans with cone top or pour top designs. [1]"
+                  },
+                  {
+                    "category": "Fstyle Cans",
+                    "function": "Packaging for various chemicals and solvents.",
+                    "applications": "Chemicals, Solvents, Lubricants.",
+                    "specifications": "F-style tin cans. [1]"
+                  },
+                  {
+                    "category": "Paint Cans",
+                    "function": "Packaging for paints, coatings, and adhesives.",
+                    "applications": "Paint Industry, Industrial Products, Adhesives.",
+                    "specifications": "Tin cans for paint. [1]"
+                  }
+                ],
+                "productInnovationFocus": "Strategic expansion into the beverage can sector, with a focus on aluminum and steel cans, driven by sustainability trends. [1]"
+              }
+            },
+            {
+              "componentType": "marketReachAndClientBase",
+              "answer": {
+                "componentType": "marketReachAndClientBase",
+                "geographicPresence": [
+                  "India", "Bangladesh", "Canada", "China", "Egypt", "Guatemala", "Jordan", "Saudi Arabia", "Turkey", "United States", "UAE", "West Indies"
+                ],
+                "primaryIndustriesServed": [
+                  "Plumbing", "Automotive", "Industrial Products", "Paint Industry", "Chemicals", "Construction Chemicals", "Adhesives", "Solvent Cement"
+                ],
+                "clientArchetypeDescription": "B2B industrial manufacturers and distributors requiring high-quality tin cans and components for packaging in sectors such as automotive, chemicals, and paints. [1]"
+              }
+            }
+          ]
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('slide-container');
+            const data = INPUT_JSON.components;
+
+            const renderers = {
+                companyOverview: (component, flexValue) => {
+                    const { companyDescription, missionVisionValues, keyMilestones } = component.answer;
+                    const milestonesHTML = keyMilestones.map(m => `
+                        <li>
+                            <span class="year">${m.year}</span>
+                            <span>${m.description}</span>
+                        </li>
+                    `).join('');
+
+                    return `
+                        <div class="component-card" style="flex: ${flexValue} 1 0%;">
+                            <h3>Company Overview</h3>
+                            <div class="card-content">
+                                <p>${companyDescription}</p>
+                                <h4>Mission, Vision & Values</h4>
+                                <p>${missionVisionValues}</p>
+                                <h4>Key Milestones</h4>
+                                <ul class="milestones-list">${milestonesHTML}</ul>
+                            </div>
+                        </div>`;
+                },
+                manufacturingCapabilities: (component, flexValue) => {
+                    const { installedCapacityOverview, manufacturingInfrastructure, productionProcessHighlight, certificationsAndQuality } = component.answer;
+                    return `
+                        <div class="component-card" style="flex: ${flexValue} 1 0%;">
+                            <h3>Manufacturing Capabilities</h3>
+                            <div class="card-content">
+                                <div class="capability-item">
+                                    <strong>Installed Capacity</strong>
+                                    <span>${installedCapacityOverview}</span>
+                                </div>
+                                <div class="capability-item">
+                                    <strong>Manufacturing Infrastructure</strong>
+                                    <span>${manufacturingInfrastructure}</span>
+                                </div>
+                                <div class="capability-item">
+                                    <strong>Production Process</strong>
+                                    <span>${productionProcessHighlight}</span>
+                                </div>
+                                <div class="capability-item">
+                                    <strong>Certifications & Quality</strong>
+                                    <span>${certificationsAndQuality}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                },
+                productPortfolio: (component, flexValue) => {
+                    const { portfolioOverviewStatement, majorProductCategories, productInnovationFocus } = component.answer;
+                    const categoriesHTML = majorProductCategories.map(cat => `
+                        <div class="product-category">
+                            <strong>${cat.category}</strong>
+                            <ul class="bullet-list">
+                                <li><span class="spec-key">Function:</span> ${cat.function}</li>
+                                <li><span class="spec-key">Applications:</span> ${cat.applications}</li>
+                                <li><span class="spec-key">Specifications:</span> ${cat.specifications}</li>
+                            </ul>
+                        </div>
+                    `).join('');
+                    
+                    return `
+                        <div class="component-card" style="flex: ${flexValue} 1 0%;">
+                            <h3>Product Portfolio</h3>
+                            <div class="card-content">
+                                <p>${portfolioOverviewStatement}</p>
+                                <h4>Major Product Categories</h4>
+                                <div class="product-categories-container">${categoriesHTML}</div>
+                                <h4>Product Innovation Focus</h4>
+                                <p>${productInnovationFocus}</p>
+                            </div>
+                        </div>`;
+                },
+                marketReachAndClientBase: (component, flexValue) => {
+                    const { geographicPresence, primaryIndustriesServed, clientArchetypeDescription } = component.answer;
+                    const geoList = `<ul class="bullet-list multi-column-list">${geographicPresence.map(p => `<li>${p}</li>`).join('')}</ul>`;
+                    const industryList = `<ul class="bullet-list multi-column-list">${primaryIndustriesServed.map(i => `<li>${i}</li>`).join('')}</ul>`;
+
+                    return `
+                        <div class="component-card" style="flex: ${flexValue} 1 0%;">
+                            <h3>Market Reach & Client Base</h3>
+                            <div class="card-content">
+                                <h4>Geographic Presence</h4>
+                                ${geoList}
+                                <h4>Primary Industries Served</h4>
+                                ${industryList}
+                                <h4>Client Archetype</h4>
+                                <p>${clientArchetypeDescription}</p>
+                            </div>
+                        </div>`;
+                }
+            };
+            
+            // Flex grow values are adjusted for better content balancing.
+            const flexValues = {
+                companyOverview: 2.5,
+                manufacturingCapabilities: 1.5,
+                productPortfolio: 3.3,
+                marketReachAndClientBase: 1.7
+            };
+
+            const leftCol = document.createElement('div');
+            leftCol.className = 'column';
+            const rightCol = document.createElement('div');
+            rightCol.className = 'column';
+            
+            const componentHTML = data.map(c => {
+                 const renderer = renderers[c.componentType];
+                 return renderer ? renderer(c, flexValues[c.componentType] || 1) : '';
+            });
+            
+            // [0] & [1] go to left column
+            // [2] & [3] go to right column
+            leftCol.innerHTML = componentHTML[0] + componentHTML[1];
+            rightCol.innerHTML = componentHTML[2] + componentHTML[3];
+
+            container.appendChild(leftCol);
+            container.appendChild(rightCol);
+        });
+    </script>
+</body>
+</html>

@@ -167,12 +167,23 @@ def presign_s3_pair(bucket: str, key_prefix: str = "pptx/", filename: str = None
     return put_url, get_url, key
 
 # ---------- 3) Prompt for code generation ----------
-def build_codegen_prompt(html_str: str) -> str:
-    # Comprehensive prompt with all visual replication requirements
-    return textwrap.dedent(f"""
-    You are an expert presentation engineer specializing in pixel-perfect HTML-to-PowerPoint conversion.
+def build_codegen_prompt(html_content: str) -> str:
+    """Builds the comprehensive prompt for Gemini to generate the PPT builder script."""
     
-    🎯 OBJECTIVE: Write a STANDALONE Python script (builder.py) that converts the given HTML into an EXACT VISUAL REPLICA PowerPoint (.pptx).
+    prompt = f"""
+    You are an expert Python developer specializing in the `python-pptx` library. Your task is to write a complete, standalone Python script that converts the provided HTML content into a visually identical PowerPoint slide.
+
+    **ENVIRONMENT CONSTRAINTS:**
+    - You are generating Python 3.12 code.
+    - Adhere strictly to the APIs available in these exact library versions:
+        - `python-pptx==1.0.2`
+        - `beautifulsoup4==4.13.5`
+        - `lxml==6.0.1`
+    - Referencing features from other versions will cause the code to fail.
+
+    **PRIMARY OBJECTIVE:**
+    - Create a Python script that uses the `python-pptx` library to generate a single-slide PowerPoint presentation (`.pptx`).
+    - The slide must be a pixel-perfect, 1:1 replica of the visual output of the provided HTML.
     
     ⚠️ CRITICAL: I have provided you with:
     1. A SCREENSHOT showing the exact visual output of the HTML file as it renders in a browser
@@ -235,6 +246,13 @@ def build_codegen_prompt(html_str: str) -> str:
     - For lines/connectors: Use `shapes.add_connector(MSO_CONNECTOR.STRAIGHT, ...)`.
     - DO NOT WRITE: `Px()`, `add_freeform_builder()`, `MSO_SHAPE.LINE` - these will cause errors!
     
+    **API USAGE - CORRECT OBJECT HIERARCHY:**
+    - **Tables:** Tables are added to `shapes`, not `text_frame`. Correct: `shapes.add_table(...)`. Incorrect: `text_frame.add_table(...)`.
+    - **Fill:** You must set the fill type before setting the color. Correct: `shape.fill.solid(); shape.fill.fore_color.rgb = ...`. Incorrect: `shape.fill.fore_color.rgb = ...` (on a shape with no default fill).
+    - **No Fill:** To make a shape transparent, use `shape.fill.background()` or `shape.fill.type = MSO_FILL.BACKGROUND`. DO NOT use the non-existent `.no_fill()` method.
+    - **Tab Stops:** Tab stops belong to the `paragraph_format` object. Correct: `paragraph.paragraph_format.tab_stops.add_tab_stop(...)`. Incorrect: `paragraph.tab_stops...`.
+    - **Object Passing:** Always pass the `slide` object to helper functions that add shapes. NEVER pass `slide.shapes`. Incorrect function calls like `add_text_box(None, ...)` will cause errors. The `slide` object must always be valid.
+
     **API USAGE - BULLET POINTS:**
     - Bullet properties belong to the `paragraph` object, NOT the `font` object.
     - Incorrect: `run.font.bullet.char = "•"` -> This will raise an AttributeError.
@@ -405,9 +423,10 @@ def build_codegen_prompt(html_str: str) -> str:
 
     Here is the HTML to convert (verbatim between <HTML> tags):
     <HTML>
-    {html_str}
+    {html_content}
     </HTML>
-    """)
+    """
+    return prompt
 
 # ---------- 4) Extract code from model output ----------
 def extract_code_block(text: str) -> str:
@@ -513,40 +532,37 @@ def convert_html_to_pptx(
     with tempfile.TemporaryDirectory() as screenshot_dir:
         screenshot_path = os.path.join(screenshot_dir, "screenshot.png")
         capture_html_screenshot(str(html_path_obj), screenshot_path, width=1920, height=1080)
-        
+
         if save_screenshot:
             screenshot_save_path = html_path_obj.with_name(f"{html_path_obj.stem}_screenshot.png")
             logging.info(f"Saving screenshot for reference: {screenshot_save_path}")
             import shutil
             shutil.copy(screenshot_path, screenshot_save_path)
             print(f"📸 Saved screenshot: {screenshot_save_path}")
-        
+
         logging.info("Loading screenshot image for Gemini...")
         screenshot_image = Image.open(screenshot_path)
-        
-        prompt = build_codegen_prompt(html_str)
-        
-        logging.info("Requesting initial code generation from Gemini (with screenshot)...")
-        resp = model.generate_content([screenshot_image, prompt])
-        total_api_calls += 1
-        
-        # --- Cost Calculation ---
-        # For multimodal input, character count is calculated on the text part.
-        # The cost of the image is separate and typically priced per-image, but we'll note it.
-        # For simplicity in this calculation, we focus on character count as per the model's pricing structure.
-        input_chars = len(prompt)
-        output_chars = len(resp.text or "")
-        total_input_chars += input_chars
-        total_output_chars += output_chars
-        logging.info(f"API Call {total_api_calls}: Input Chars = {input_chars}, Output Chars = {output_chars}")
-        # --- End Cost Calculation ---
 
-        text = resp.text or ""
-        logging.info(f"Received initial response from Gemini ({len(text)} characters)")
-        code = extract_code_block(text)
-        
-        if not code or "def main(" not in code and "__name__" not in code:
-            logging.warning("Initial response from Gemini did not appear to be a valid script.")
+    prompt = build_codegen_prompt(html_str)
+
+    logging.info("Requesting initial code generation from Gemini (with screenshot)...")
+    resp = model.generate_content([screenshot_image, prompt])
+    total_api_calls += 1
+
+    # --- Cost Calculation ---
+    input_chars = len(prompt)
+    output_chars = len(resp.text or "")
+    total_input_chars += input_chars
+    total_output_chars += output_chars
+    logging.info(f"API Call {total_api_calls}: Input Chars = {input_chars}, Output Chars = {output_chars}")
+    # --- End Cost Calculation ---
+
+    text = resp.text or ""
+    logging.info(f"Received initial response from Gemini ({len(text)} characters)")
+    code = extract_code_block(text)
+
+    if not code or "def main(" not in code and "__name__" not in code:
+        logging.warning("Initial response from Gemini did not appear to be a valid script.")
 
     # 2) Self-healing loop
     for attempt in range(1, max_retries + 1):
@@ -570,7 +586,7 @@ def convert_html_to_pptx(
 
             if proc.returncode == 0 and os.path.exists(out_pptx) and os.path.getsize(out_pptx) > 0:
                 logging.info(f"SUCCESS: Builder script executed successfully on attempt {attempt}.")
-                
+
                 final_output_path = ""
                 if s3_bucket:
                     _, get_url, _ = presign_s3_pair(s3_bucket, s3_key_prefix)
@@ -582,16 +598,15 @@ def convert_html_to_pptx(
                     pathlib.Path(out_pptx).replace(local_out)
                     final_output_path = str(local_out)
                     print(f"\n✅ PPTX saved locally: {final_output_path}\n")
-                
+
                 logging.info("="*30 + " Process Completed Successfully " + "="*30)
-                # Clean up the handler for this run to avoid duplicate logging
                 logging.getLogger().removeHandler(file_handler)
-                
+
                 # --- Final Cost Calculation on Success ---
                 input_cost = (total_input_chars / 1000) * COST_PER_1K_CHARS_INPUT
                 output_cost = (total_output_chars / 1000) * COST_PER_1K_CHARS_OUTPUT
                 total_cost = input_cost + output_cost
-                
+
                 cost_summary = (
                     f"\n--- COST SUMMARY (SUCCESS) ---\n"
                     f"Total API Calls: {total_api_calls}\n"
@@ -605,17 +620,14 @@ def convert_html_to_pptx(
                 )
                 print(cost_summary)
                 logging.info(cost_summary)
-                # --- End Final Cost Calculation ---
-                
                 return final_output_path
 
             # --- Handle Failure ---
             logging.error(f"FAIL: Builder script failed on attempt {attempt}.")
             error_output = f"STDOUT:\n{proc.stdout}\n\nSTDERR:\n{proc.stderr}"
             logging.error(f"Execution failed with return code {proc.returncode}.\n{error_output}")
-            
+
             if attempt < max_retries:
-                # Request a fix from Gemini and update costs
                 fixed_code, input_chars, output_chars = request_code_fix(code, error_output, model)
                 code = fixed_code
                 total_api_calls += 1
@@ -627,12 +639,12 @@ def convert_html_to_pptx(
                 final_error_message = f"Failed to generate PPTX for {html_path} after {max_retries} attempts."
                 if builder_save_path:
                     final_error_message += f" Check the final faulty builder script at: {builder_save_path}"
-                
+
                 # --- Final Cost Calculation on Failure ---
                 input_cost = (total_input_chars / 1000) * COST_PER_1K_CHARS_INPUT
                 output_cost = (total_output_chars / 1000) * COST_PER_1K_CHARS_OUTPUT
                 total_cost = input_cost + output_cost
-                
+
                 cost_summary = (
                     f"\n--- COST SUMMARY (FAILED) ---\n"
                     f"Total API Calls: {total_api_calls}\n"
@@ -646,9 +658,7 @@ def convert_html_to_pptx(
                 )
                 print(cost_summary)
                 logging.info(cost_summary)
-                # --- End Final Cost Calculation ---
                 
-                # Clean up handler before raising
                 logging.getLogger().removeHandler(file_handler)
                 raise ConversionError(final_error_message)
 

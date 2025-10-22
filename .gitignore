@@ -17,3 +17,5 @@ sampleHTML/*.pptx
 sampleHTML/*_builder.py
 sampleHTML/*_builder_attempt_*.py
 sampleHTML/*_screenshot.png
+
+*.pptx
